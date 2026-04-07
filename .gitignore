@@ -1,0 +1,23 @@
+# Node
+node_modules/
+npm-debug.log*
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Docker
+.dockerignore
+
+# OS
+.DS_Store
+
+# GCP
+*.json
+!package.json
+!package-lock.json
