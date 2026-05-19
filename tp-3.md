@@ -1077,7 +1077,7 @@ gh run watch
 > **Réponse :** **Kyverno** (ou OPA/Gatekeeper) sont les outils de référence pour ce type de validation. Kyverno permet de définir des politiques en YAML natif Kubernetes (pas de langage spécifique à apprendre) : on crée une `ClusterPolicy` qui rejette tout manifest sans `resources.limits` ou sans `readinessProbe`. Il peut fonctionner en deux modes : **audit** (signaler sans bloquer, pour inventorier les non-conformités existantes) et **enforce** (bloquer le déploiement si la règle n'est pas respectée). En CI, on peut aussi utiliser **Polaris** (`polaris audit --audit-path k8s/`) qui génère un rapport statique des violations de bonnes pratiques Kubernetes (limites manquantes, probes absentes, privileges trop élevés) sans avoir besoin d'un cluster actif.
 
 ---
-
+![alt text](image-4.png)
 ## Partie 4 — Observabilité du cluster Kafka et des microservices
 
 ### 4.1 — Métriques Kafka avec Cloud Monitoring
@@ -1110,7 +1110,7 @@ sleep 15
 kubectl logs kafka-lag-check -n logistream
 kubectl delete pod kafka-lag-check -n logistream
 ```
-
+![alt text](image-5.png)
 ### 4.2 — Logs structurés et requêtes Cloud Logging
 
 ```bash
@@ -1139,6 +1139,8 @@ gcloud logging read \
   --limit=20
 # Niveau de sévérité : ERROR
 ```
+![alt text](image-6.png)
+
 
 ### 4.3 — Créer une alerte sur le Consumer Lag
 
