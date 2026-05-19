@@ -862,27 +862,27 @@ git commit -m "feat: initial commit LogiStream GKE + Kafka"
 gh repo create logistream-cloud --public --push --source=.
 ```
 
-### 3.2 — Secrets GitHub requis
+### 3.2 — Configurer l'authentification GCP avec Workload Identity Federation
 
-Dans **Settings → Secrets and variables → Actions**, créer :
+> **Pourquoi ne pas utiliser une clé JSON ?**
+>
+> La méthode classique consiste à générer une clé JSON (`gcloud iam service-accounts keys create`) et à la stocker comme secret GitHub (`GCP_SA_KEY`). Cette approche pose deux problèmes majeurs :
+>
+> 1. **Politique organisation GCP** : la contrainte `constraints/iam.disableServiceAccountKeyCreation` est souvent activée en entreprise (et sur les projets GCP Ynov) pour des raisons de sécurité — elle bloque purement et simplement la création de clés. La commande `keys create` retourne une erreur `FAILED_PRECONDITION`.
+> 2. **Sécurité** : une clé JSON est un credential permanent qui ne tourne pas automatiquement. Si elle fuite (log, repo public), l'accès GCP est compromis indéfiniment.
+>
+> **La solution : Workload Identity Federation (WIF)**. GitHub Actions s'authentifie via OIDC (OpenID Connect) directement auprès de GCP, sans aucune clé à stocker. GCP vérifie que la requête vient bien du repo GitHub autorisé grâce à un token signé par GitHub. C'est le mécanisme recommandé par Google depuis 2022.
 
-|Secret|Description|
-|---|---|
-|`GCP_PROJECT_ID`|ID de votre projet GCP|
-|`GCP_SA_KEY`|Clé JSON du Service Account CI/CD|
-|`GKE_CLUSTER`|`logistream-cluster`|
-|`GKE_REGION`|`europe-west9`|
+#### Étape 1 — Créer le Service Account et lui donner les permissions
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
 
-# Créer le Service Account pour GitHub Actions
 gcloud iam service-accounts create logistream-cicd-sa \
   --display-name="LogiStream CI/CD"
 
 SA_EMAIL="logistream-cicd-sa@${PROJECT_ID}.iam.gserviceaccount.com"
 
-# Permissions nécessaires
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member="serviceAccount:${SA_EMAIL}" \
   --role="roles/artifactregistry.writer"
@@ -890,12 +890,54 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member="serviceAccount:${SA_EMAIL}" \
   --role="roles/container.developer"
-
-# Générer la clé JSON
-gcloud iam service-accounts keys create cicd-key.json --iam-account=${SA_EMAIL}
-cat cicd-key.json  # Copier dans GitHub Secret GCP_SA_KEY
-rm cicd-key.json   # Supprimer immédiatement après copie
 ```
+
+#### Étape 2 — Créer le Workload Identity Pool et le Provider GitHub
+
+```bash
+REPO="<votre-username>/<votre-repo>"  # ex: boubalaria/dev_cloud
+
+# Créer le pool d'identités
+gcloud iam workload-identity-pools create "github-pool" \
+  --location="global" \
+  --display-name="GitHub Actions Pool"
+
+# Créer le provider OIDC lié à GitHub
+gcloud iam workload-identity-pools providers create-oidc "github-provider" \
+  --location="global" \
+  --workload-identity-pool="github-pool" \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+  --attribute-condition="assertion.repository=='${REPO}'"
+
+# Lier le Service Account au pool (seul ce repo peut l'utiliser)
+PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format='value(projectNumber)')
+
+gcloud iam service-accounts add-iam-policy-binding "${SA_EMAIL}" \
+  --role="roles/iam.workloadIdentityUser" \
+  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-pool/attribute.repository/${REPO}"
+
+# Récupérer le nom complet du provider (à copier dans GitHub Variables)
+gcloud iam workload-identity-pools providers describe github-provider \
+  --location="global" \
+  --workload-identity-pool="github-pool" \
+  --format="value(name)"
+# Résultat : projects/XXXXXXXXXX/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+```
+
+#### Étape 3 — Configurer GitHub
+
+Dans **Settings → Secrets and variables → Actions**, créer :
+
+| Type | Nom | Description |
+|------|-----|-------------|
+| Secret | `GCP_PROJECT_ID` | ID de votre projet GCP |
+| Secret | `GKE_CLUSTER` | `logistream-cluster` |
+| Secret | `GKE_REGION` | `europe-west9` |
+| Variable | `GCP_WORKLOAD_IDENTITY_PROVIDER` | La valeur retournée par la dernière commande ci-dessus |
+| Variable | `GCP_SA_EMAIL` | `logistream-cicd-sa@<PROJECT_ID>.iam.gserviceaccount.com` |
+
+> `GCP_WORKLOAD_IDENTITY_PROVIDER` et `GCP_SA_EMAIL` sont des **variables** (non sensibles) et non des secrets : ce sont de simples identifiants, pas des credentials. Cela permet de les voir en clair dans les logs GitHub Actions si besoin.
 
 ### 3.3 — Pipeline GitHub Actions complet
 
@@ -957,7 +999,8 @@ jobs:
       - name: Authentification GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
       - uses: google-github-actions/setup-gcloud@v2
       - name: Configurer Docker
         run: gcloud auth configure-docker ${REGISTRY} --quiet
@@ -988,7 +1031,8 @@ jobs:
       - name: Authentification GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
       - uses: google-github-actions/setup-gcloud@v2
         with:
           install_components: 'kubectl'
