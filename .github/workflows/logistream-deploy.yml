@@ -58,9 +58,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    outputs:
-      producer-tag: ${{ steps.tags.outputs.producer-tag }}
-      consumer-tag: ${{ steps.tags.outputs.consumer-tag }}
     steps:
       - uses: actions/checkout@v4
       - name: Authentification GCP
@@ -71,20 +68,14 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v2
       - name: Configurer Docker
         run: gcloud auth configure-docker ${REGISTRY} --quiet
-      - name: Générer les tags d'image
-        id: tags
-        run: |
-          SHA="${{ github.sha }}"
-          echo "producer-tag=${REGISTRY}/${PROJECT_ID}/tp2-registry/gps-producer:${SHA}" >> $GITHUB_OUTPUT
-          echo "consumer-tag=${REGISTRY}/${PROJECT_ID}/tp2-registry/tracker-consumer:${SHA}" >> $GITHUB_OUTPUT
       - name: Build & Push GPS Producer
         run: |
-          docker build -t ${{ steps.tags.outputs.producer-tag }} tp3-logistream/producer/
-          docker push ${{ steps.tags.outputs.producer-tag }}
+          docker build -t ${REGISTRY}/${PROJECT_ID}/tp2-registry/gps-producer:${GITHUB_SHA} tp3-logistream/producer/
+          docker push ${REGISTRY}/${PROJECT_ID}/tp2-registry/gps-producer:${GITHUB_SHA}
       - name: Build & Push Tracker Consumer
         run: |
-          docker build -t ${{ steps.tags.outputs.consumer-tag }} tp3-logistream/consumer/
-          docker push ${{ steps.tags.outputs.consumer-tag }}
+          docker build -t ${REGISTRY}/${PROJECT_ID}/tp2-registry/tracker-consumer:${GITHUB_SHA} tp3-logistream/consumer/
+          docker push ${REGISTRY}/${PROJECT_ID}/tp2-registry/tracker-consumer:${GITHUB_SHA}
 
   # ==========================================================
   # Job 3 : Deploy sur GKE
@@ -113,12 +104,12 @@ jobs:
       - name: Mettre à jour le GPS Producer
         run: |
           kubectl set image deployment/gps-producer \
-            gps-producer=${{ needs.build-push.outputs.producer-tag }} \
+            gps-producer=${REGISTRY}/${PROJECT_ID}/tp2-registry/gps-producer:${GITHUB_SHA} \
             -n logistream
       - name: Mettre à jour le Tracker Consumer
         run: |
           kubectl set image deployment/tracker-consumer \
-            tracker-consumer=${{ needs.build-push.outputs.consumer-tag }} \
+            tracker-consumer=${REGISTRY}/${PROJECT_ID}/tp2-registry/tracker-consumer:${GITHUB_SHA} \
             -n logistream
       - name: Attendre les déploiements
         run: |
