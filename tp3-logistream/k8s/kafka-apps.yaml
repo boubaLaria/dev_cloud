@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: gps-producer
-          image: europe-west9-docker.pkg.dev/PROJECT_ID/tp2-registry/gps-producer:v1
+          image: europe-west9-docker.pkg.dev/$(gcloud config get-value project)/tp2-registry/gps-producer:v1
           envFrom:
             - configMapRef:
                 name: logistream-config

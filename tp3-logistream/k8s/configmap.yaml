@@ -11,3 +11,5 @@ data:
   KAFKA_TOPIC_ALERTS: "delivery-alerts"
   GPS_UPDATE_INTERVAL_MS: "10000"
   MAX_TRUCKS: "1000"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"

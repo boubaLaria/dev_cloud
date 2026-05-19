@@ -4,7 +4,8 @@
   "description": "Consumer Kafka GPS pour LogiStream",
   "main": "tracker-consumer.js",
   "scripts": {
-    "start": "node tracker-consumer.js"
+    "start": "node tracker-consumer.js",
+    "test": "node tracker-consumer.test.js"
   },
   "dependencies": {
     "kafkajs": "^2.2.4"

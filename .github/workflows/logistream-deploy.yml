@@ -29,15 +29,21 @@ jobs:
         with:
           node-version: '20'
       - name: Installer les dépendances producer
-        run: npm ci
+        run: npm install
         working-directory: tp3-logistream/producer
       - name: Installer les dépendances consumer
-        run: npm ci
+        run: npm install
+        working-directory: tp3-logistream/consumer
+      - name: Tests producer
+        run: npm test
+        working-directory: tp3-logistream/producer
+      - name: Tests consumer
+        run: npm test
         working-directory: tp3-logistream/consumer
       - name: Valider les manifests Kubernetes
         run: |
-          curl -sL https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz | tar xz
-          ./kubeval tp3-logistream/k8s/*.yaml --ignore-missing-schemas
+          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz
+          ./kubeconform -summary -ignore-missing-schemas tp3-logistream/k8s/*.yaml
 
   # ==========================================================
   # Job 2 : Build & Push

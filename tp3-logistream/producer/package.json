@@ -4,7 +4,8 @@
   "description": "Simulateur GPS pour la flotte LogiStream",
   "main": "gps-producer.js",
   "scripts": {
-    "start": "node gps-producer.js"
+    "start": "node gps-producer.js",
+    "test": "node gps-producer.test.js"
   },
   "dependencies": {
     "kafkajs": "^2.2.4"

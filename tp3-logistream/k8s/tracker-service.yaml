@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: tracker-service
-          image: europe-west9-docker.pkg.dev/PROJECT_ID/tp2-registry/tp2-app:v1
+          image: europe-west9-docker.pkg.dev/project-c9348c8d-cd62-4407-8ed/tp2-registry/tp2-app:v2
           ports:
             - containerPort: 8080
           envFrom:
@@ -40,7 +40,7 @@ spec:
               memory: "1Gi"
           readinessProbe:
             httpGet:
-              path: /health
+              path: /
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 15

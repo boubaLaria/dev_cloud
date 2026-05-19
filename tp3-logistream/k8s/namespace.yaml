@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logistream
+  labels:
+    app.kubernetes.io/managed-by: kubectl
+    environment: production
+    team: logistream
