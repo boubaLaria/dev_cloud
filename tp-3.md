@@ -1078,6 +1078,8 @@ gh run watch
 
 ---
 ![alt text](image-4.png)
+
+![alt text](image-8.png)
 ## Partie 4 — Observabilité du cluster Kafka et des microservices
 
 ### 4.1 — Métriques Kafka avec Cloud Monitoring

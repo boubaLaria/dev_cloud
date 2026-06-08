@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finsecure-app
+  namespace: default
+  labels:
+    app: finsecure
+    team: backend
+    environment: production
+    feature: payments
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: finsecure
+  template:
+    metadata:
+      labels:
+        app: finsecure
+    spec:
+      serviceAccountName: finsecure-app-ksa
+
+      initContainers:
+        - name: fetch-secrets
+          image: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+          command:
+            - /bin/sh
+            - -c
+            - |
+              gcloud secrets versions access latest \
+                --secret="finsecure-db-password" \
+                --project="${PROJECT_ID}" \
+                > /secrets/db-password
+          env:
+            - name: PROJECT_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: secrets-vol
+              mountPath: /secrets
+
+      containers:
+        - name: finsecure-app
+          image: europe-west9-docker.pkg.dev/PROJECT_ID/tp3-app-registry/finsecure-app:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: REDIS_HOST
+              value: "REDIS_IP_PLACEHOLDER"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: GCP_PROJECT
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: secrets-vol
+              mountPath: /secrets
+              readOnly: true
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+      volumes:
+        - name: secrets-vol
+          emptyDir:
+            medium: Memory
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: finsecure-app-service
+  namespace: default
+spec:
+  type: LoadBalancer
+  selector:
+    app: finsecure
+  ports:
+    - port: 80
+      targetPort: 3000
