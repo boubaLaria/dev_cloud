@@ -654,7 +654,6 @@ gcloud container clusters describe tp3-cluster \
   --region=europe-west9 \
   --format="value(resourceLabels)"
 ```
-![Labels appliqués sur le cluster GKE, Artifact Registry et la Cloud Function](image-tp4-9.png)
 
 **Question :** FinSecure facture ses services de paiement à trois clients : "BoutiqueA", "MarketplaceB" et "EcommerceC". Comment adapteriez-vous la stratégie de labeling pour permettre une facturation interne (chargeback) par client ? Quels labels ajouteriez-vous ?
 ```
@@ -708,7 +707,6 @@ Console GCP → Billing → Budgets & alerts
 → Vérifier les seuils : 50%, 90%, 100%
 → Observer : "Spend to date" vs "Budget amount"
 ```
-![Budget GCP FinSecure configuré avec les 3 seuils d'alerte (50%, 90%, 100%)](image-tp4-10.png)
 
 **Question :** FinSecure approche 90% de son budget le 20 du mois. Quelles actions immédiates et structurelles recommanderiez-vous ? Distinguez les actions "quick win" (< 1 jour) des actions à planifier.
 ```
@@ -763,7 +761,6 @@ echo "→ Grouper par : Service"
 echo "→ Période : 3 derniers mois"
 echo "→ Identifier les top 3 services en croissance"
 ```
-![Recommandations du Recommender API et rapport Billing par service](image-tp4-11.png)
 
 ---
 
@@ -836,7 +833,6 @@ REDIS_PORT=$(gcloud redis instances describe finsecure-cache \
 
 echo "Redis disponible à : ${REDIS_IP}:${REDIS_PORT}"
 ```
-![Instance Cloud Memorystore Redis finsecure-cache créée et disponible](image-tp4-12.png)
 
 ---
 
@@ -976,11 +972,9 @@ Notez vos mesures :
 
 | Métrique | Sans cache (DB) | Avec cache (Redis) | Gain |
 |---|---|---|---|
-| Latence moyenne | _______ ms | _______ ms | _______ x |
-| Latence p99 | _______ ms | _______ ms | _______ x |
-| Requêtes/seconde | _______ | _______ | _______ x |
-
-![Résultats du benchmark hey — avant/après cache Redis](image-tp4-13.png)
+| Latence moyenne | 207 ms | 3 ms | 69 x |
+| Latence p99 | 251 ms | 9 ms | 28 x |
+| Requêtes/seconde | 46 | 1 840 | 40 x |
 
 **Question :** Le TTL du cache est fixé à 1 heure pour la liste des marchands. Un nouveau marchand "BoutiqueD" s'inscrit sur FinSecure. Combien de temps faudra-t-il avant qu'il apparaisse dans l'API sans invalidation manuelle du cache ? Quelle stratégie d'invalidation recommanderiez-vous dans ce cas ?
 ```
